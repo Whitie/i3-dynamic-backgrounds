@@ -3,7 +3,6 @@
 
 import os
 import random
-import socket
 import subprocess
 import sys
 import time
@@ -12,7 +11,7 @@ from argparse import ArgumentParser
 
 
 VALID_EXTENSIONS = {'.jpg', '.png', '.jpeg', '.gif'}
-SOCKET = '/tmp/i3-wallpapers.sock'
+PIDFILE = '/tmp/i3-wallpapers-{}.pid'.format(os.getuid())
 
 
 # Check if file ends with valid picture extension
@@ -45,6 +44,15 @@ def handle_arguments():
     return args
 
 
+def is_running():
+    try:
+        with open(PIDFILE) as fp:
+            pid = int(fp.read())
+        return os.kill(pid, 0)
+    except Exception:
+        return False
+
+
 def loop(pictures, duration):
     for pic in pictures:
         start = time.monotonic()
@@ -57,17 +65,18 @@ def main():
     pictures = get_picture_list(args.directory)
     if args.random:
         random.shuffle(pictures)
+    if is_running():
+        print('Script already running')
+        return
+    with open(PIDFILE, 'w') as fp:
+        fp.write(str(os.getpid()))
     try:
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.bind(SOCKET)
         while True:
             loop(pictures, args.time)
-    except OSError:
-        print('Program already running. Exiting now...')
     except KeyboardInterrupt:
         print('\rClosing now...')
     finally:
-        s.close()
+        os.remove(PIDFILE)
 
 
 if __name__ == "__main__":
