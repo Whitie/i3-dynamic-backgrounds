@@ -53,6 +53,16 @@ def is_running():
         return False
 
 
+def randomize_pictures(pictures):
+    if len(pictures) <= 1:
+        return pictures
+    first = pictures[0]
+    while True:
+        random.shuffle(pictures)
+        if first != pictures[0]:
+            return pictures
+
+
 def loop(pictures, duration):
     for pic in pictures:
         start = time.monotonic()
@@ -63,8 +73,6 @@ def loop(pictures, duration):
 def main():
     args = handle_arguments()
     pictures = get_picture_list(args.directory)
-    if args.random:
-        random.shuffle(pictures)
     if is_running():
         print('Script already running')
         return
@@ -72,6 +80,8 @@ def main():
         fp.write(str(os.getpid()))
     try:
         while True:
+            if args.random:
+                pictures = randomize_pictures(pictures)
             loop(pictures, args.time)
     except KeyboardInterrupt:
         print('\rClosing now...')
